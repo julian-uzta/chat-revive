@@ -12,6 +12,7 @@ import { AttachmentUnavailableIcon } from "./svg/AttachmentUnavailableIcon";
 import Image from "next/image";
 
 import CryptoJS from "crypto-js";
+import { SearchIcon } from "./svg/SearchIcon";
 
 interface User {
   id: string,
@@ -47,7 +48,31 @@ export default function HomePage() {
 
   const [loading, setLoading] = React.useState<boolean>(false)
 
+  const [currentBackup, setCurrentBackup] = React.useState<Backup|undefined>(undefined)
+
   const [currentChat, setCurrentChat] = React.useState<Chat|undefined>(undefined)
+
+  const [inputValue, setInputValue] = React.useState<string|undefined>(undefined);
+  const [searchEnabled, setSearchEnabled] = React.useState<boolean>(false);
+
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    setInputValue(value);
+    setSearchEnabled(value.trim().length > 0);
+    console.log("Searching for:", inputValue);
+  };
+
+  React.useEffect(() => {
+    if (inputValue && backup) {
+      const filteredChats = backup.chats.filter(chat =>
+        chat.recipient.name.toLowerCase().includes(inputValue.toLowerCase())
+      );
+      setCurrentBackup({ ...backup, chats: filteredChats });
+    } else {
+      setCurrentBackup(backup);
+    }
+  }, [inputValue, backup]);
+  
   
   const chatRef = React.useRef<HTMLDivElement>(null);
 
@@ -62,8 +87,6 @@ export default function HomePage() {
       }
     }, 0);
   };
-
-
 
   const hardcodedPassword = "b506c44b-9cbb-476d-9830-cba32030a7b6";
 
@@ -130,7 +153,7 @@ export default function HomePage() {
             <div className="mx-2">
               {
                 lastMessage?.dateTime ?
-                new Date(Number(lastMessage?.dateTime) * 1000).toLocaleString(undefined, {
+                new Date(Number(lastMessage?.dateTime) * 1000).toLocaleString('en-US', {
                   year: 'numeric',
                   month: 'numeric',
                   day: 'numeric',
@@ -204,7 +227,7 @@ export default function HomePage() {
               }
               <div className="chat-footer opacity-50 hidden group-hover:block">
                 {
-                  new Date(Number(message?.dateTime) * 1000).toLocaleString(undefined, {
+                  new Date(Number(message?.dateTime) * 1000).toLocaleString('en-US', {
                     year: 'numeric',
                     month: 'numeric',
                     day: 'numeric',
@@ -231,6 +254,13 @@ export default function HomePage() {
       }
     }
   }, [loading])
+
+  const enableSearch = () => {
+    setSearchEnabled(true)
+  }
+  const disableSearch = () => {
+    setSearchEnabled(false)
+  }  
   
   return (
     viewState == "upload" ?
@@ -279,10 +309,24 @@ export default function HomePage() {
       </button>
       <div className="w-1/3 items-center">
         <div className="w-5/6 mx-auto">
-          <h2 className="text-2xl font-bold mx-2">Chats</h2>
+          <div className="w-full flex justify-between">
+            <h2 className="text-2xl font-bold mx-2">Chats</h2>
+            <div onMouseEnter={enableSearch} onMouseLeave={disableSearch} className="float-right flex items-center opacity-25 hover:opacity-100 h-8">
+              { searchEnabled ?
+                <label className="input input-bordered flex items-center gap-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 opacity-70"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM12.735 14c.618 0 1.093-.561.872-1.139a6.002 6.002 0 0 0-11.215 0c-.22.578.254 1.139.872 1.139h9.47Z" /></svg>
+                  <input type="text" className="grow" placeholder="Recipient" value={inputValue} onChange={handleInputChange}/>
+                </label>
+                :
+                <button>
+                  <SearchIcon/>
+                </button>
+              }
+            </div>
+          </div>
           <div className="overflow-y-auto h-160 mt-6" style={{boxShadow: "inset 0 25px 25px -25px rgba(46, 52, 64, 0.05), inset 0 -25px 25px -25px rgba(46, 52, 64, 0.05)"}}>
             {
-              backup?.chats.map((chat) => <ChatBubble key={chat.recipient.id} chat={chat}/>)
+              currentBackup?.chats.map((chat) => <ChatBubble key={chat.recipient.id} chat={chat}/>)
             }
           </div>
         </div>
