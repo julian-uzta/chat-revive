@@ -6,10 +6,14 @@ import { ChatSmileyIcon } from "./svg/ChatSmileyIcon";
 import { LoadingModal } from "./components/LoadingModal";
 import { AvatarIcon } from "./svg/AvatarIcon";
 import { BackIcon } from "./svg/BackIcon";
+import { AttachmentUnavailableIcon } from "./svg/AttachmentUnavailableIcon";
+
+import Image from "next/image";
 
 interface User {
   id: string,
-  name: string
+  name: string,
+  phone: string
 }
 interface Message {
   dateTime: Date,
@@ -107,18 +111,25 @@ export default function HomePage() {
     return (
       <button onClick={() => { chat && changeChat(chat)}} className="w-full mx-auto border border-slate-500 bg-gray-700 bg-opacity-20 rounded-xl justify-around my-4 p-4 text-left">
         <div>
-          <div>
-            {chat?.recipient.name}
+          <div className="flex justify-between">
+            <div>
+              {chat?.recipient.name}
+            </div>
+            <div className="mx-2">
+              {
+                lastMessage?.dateTime ?
+                new Date(Number(lastMessage?.dateTime) * 1000).toLocaleString()
+                : "N/A"
+              }
+            </div>
+          </div>
+          <div >
+          {chat?.recipient.phone}
           </div>
           <div>
-            {
-              lastMessage?.dateTime ?
-              lastMessage?.dateTime.toString()
-              : "N/A"
-            }
           </div>
           { chat?.messages && 
-            <div className="badge badge-accent relative float-right bottom-12 h-6 w-10 mx-1">{chat.messages.length}</div>
+            <div className="badge badge-accent relative float-right bottom-0 h-6 w-10 mx-1">{chat.messages.length}</div>
           }
         </div>      
       </button>
@@ -140,9 +151,34 @@ export default function HomePage() {
                   </div>
                 </div>
               </div>
-              <div className="chat-bubble">{message.content}</div>
+              { message.content.startsWith("data:image") ?
+                <div className="h-content w-content bg-white bg-opacity-25 rounded-xl">
+                  <Image src={message.content} alt="Photo" width={128} height={128} className="rounded-xl"/>
+                </div>
+                :
+                <div className={`chat-bubble ${message.direction == "to" && "chat-bubble-secondary"}`}>
+                  { message.content == "<N/A>" ?
+                    <div className="w-full border border-slate-500 bg-gray-300 bg-opacity-10 rounded-xl flex flex-col items-center pb-2">
+                      <label className="px-8 pt-4 pb-2">Attachment unavailable</label>
+                      <div className="opacity-50">
+                        <AttachmentUnavailableIcon/>
+                      </div>
+                    </div>
+                    :
+                    <span>
+                      {message.content.split(/\b(https?:\/\/\S+)/).map((part, index) => {
+                        if (index % 2 === 0) {
+                          return part;
+                        } else {
+                          return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-lime-100">{part}</a>;
+                        }
+                      })}
+                    </span>
+                  }
+                </div>
+              }
               <div className="chat-footer opacity-50 hidden group-hover:block">
-                {message?.dateTime.toString()}
+                {new Date(Number(message?.dateTime) * 1000).toLocaleString()}
               </div>                
             </div>
           ))
@@ -184,7 +220,12 @@ export default function HomePage() {
           </div>
         </div>
         :
-        <input type="file" className="file-input file-input-bordered file-input-success w-1/3 h-24" accept=".wsp.bk" onChange={handleFileUpload}/>
+        <>
+          <input type="file" className="file-input file-input-bordered file-input-success w-1/3 h-24" accept=".wsp.bk" onChange={handleFileUpload}/>
+          <div className="label">
+            <span className="label-text-alt font-bold italic">Backup file format: <span className="font-normal">.wsp.bk</span></span>
+          </div>
+        </>
       }
       <div className="my-8">
         { backup ? 
@@ -217,7 +258,7 @@ export default function HomePage() {
           currentChat ?
           <div className="flex flex-col m-8">
             <div className="h-12 w-full bg-base-default border border-slate-300 border-opacity-25 rounded-xl items-center flex justify-between">
-              <h2 className="mx-4">To: {currentChat.recipient.name}</h2>
+              <h2 className="mx-4">To: {currentChat.recipient.name} <span className="opacity-50 mx-2 italic">{currentChat.recipient.phone}</span></h2>
               <h2 className="mx-4 italic opacity-50">{currentChat.messages.length} messages recovered</h2>
             </div>
             { renderMessages() }
