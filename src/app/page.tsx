@@ -121,16 +121,23 @@ export default function HomePage() {
   const ChatBubble = ({ chat }: ChatBubbleProps) => {
     const lastMessage = chat?.messages[chat?.messages.length - 1]
     return (
-      <button onClick={() => { chat && changeChat(chat)}} className="w-full mx-auto border border-slate-500 bg-gray-700 bg-opacity-20 rounded-xl justify-around my-4 p-4 text-left">
+      <button onClick={() => { chat && changeChat(chat)}} className={`w-full mx-auto border border-slate-500 bg-gray-700 bg-opacity-20 rounded-xl justify-around my-4 p-4 text-left ${chat == currentChat && "bg-opacity-40"}`}>
         <div>
           <div className="flex justify-between">
             <div>
-              {chat?.recipient.name}
+              <span className="font-bold">{chat?.recipient.name}</span>
             </div>
             <div className="mx-2">
               {
                 lastMessage?.dateTime ?
-                new Date(Number(lastMessage?.dateTime) * 1000).toLocaleString()
+                new Date(Number(lastMessage?.dateTime) * 1000).toLocaleString(undefined, {
+                  year: 'numeric',
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: 'numeric',
+                  minute: 'numeric',
+                  hour12: true // to display time in 12-hour format with AM/PM
+                })                
                 : "N/A"
               }
             </div>
@@ -188,7 +195,7 @@ export default function HomePage() {
                         if (index % 2 === 0) {
                           return part;
                         } else {
-                          return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-lime-100">{part}</a>;
+                          return <a key={index} href={part} target="_blank" rel="noopener noreferrer" className="text-teal-100">{part}</a>;
                         }
                       })}
                     </span>
@@ -196,7 +203,16 @@ export default function HomePage() {
                 </div>
               }
               <div className="chat-footer opacity-50 hidden group-hover:block">
-                {new Date(Number(message?.dateTime) * 1000).toLocaleString()}
+                {
+                  new Date(Number(message?.dateTime) * 1000).toLocaleString(undefined, {
+                    year: 'numeric',
+                    month: 'numeric',
+                    day: 'numeric',
+                    hour: 'numeric',
+                    minute: 'numeric',
+                    hour12: true // to display time in 12-hour format with AM/PM
+                  })
+                }
               </div>                
             </div>
           ))
