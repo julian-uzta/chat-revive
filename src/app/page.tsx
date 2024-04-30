@@ -5,10 +5,13 @@ import { TrashIcon } from "./svg/TrashIcon";
 import { ChatSmileyIcon } from "./svg/ChatSmileyIcon";
 import { LoadingModal } from "./components/LoadingModal";
 import { AvatarIcon } from "./svg/AvatarIcon";
+import { LockIcon } from "./svg/LockIcon";
 import { BackIcon } from "./svg/BackIcon";
 import { AttachmentUnavailableIcon } from "./svg/AttachmentUnavailableIcon";
 
 import Image from "next/image";
+
+import CryptoJS from "crypto-js";
 
 interface User {
   id: string,
@@ -22,6 +25,8 @@ interface Message {
 }
 interface Chat {
   recipient: User,
+  encrypted: boolean,
+  messageCount: number | undefined,
   messages: Message[]
 }
 interface Backup {
@@ -60,29 +65,36 @@ export default function HomePage() {
 
 
 
+  const hardcodedPassword = "b506c44b-9cbb-476d-9830-cba32030a7b6";
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
+  
     const reader = new FileReader();
-
+  
     reader.onload = (e: ProgressEvent<FileReader>) => {
-      if (!e.target) return
-      const content = e.target.result as string
-
+      if (!e.target) return;
+      const content = e.target.result as string;
+  
       try {
-        const data = JSON.parse(content) as Backup
-        if(data) {
-          setBackup(data)
+        const decryptedContent = decryptContent(content);
+        const data = JSON.parse(decryptedContent) as Backup;
+        if (data) {
+          setBackup(data);
         }
+      } catch (error) {
+        console.error("Error parsing JSON or decrypting content:", error);
       }
-      catch(error) {
-        console.error("Error parsing JSON:", error);
-      }
-    }
-
+    };
+  
     reader.readAsText(file);
-  }
+  };
+  
+  const decryptContent = (encryptedContent: string) => {
+    const bytes = CryptoJS.AES.decrypt(encryptedContent, hardcodedPassword);
+    return bytes.toString(CryptoJS.enc.Utf8);
+  };
 
   const removeBackup = () => {
     setBackup(undefined)
@@ -129,7 +141,13 @@ export default function HomePage() {
           <div>
           </div>
           { chat?.messages && 
-            <div className="badge badge-accent relative float-right bottom-0 h-6 w-10 mx-1">{chat.messages.length}</div>
+            <div className="badge badge-accent relative float-right bottom-0 h-6 w-10 mx-1">{chat.messageCount ?? chat.messages.length}</div>
+          }
+          {
+            chat?.encrypted &&
+            <div className="relative h-6 w-6 float-right flex items-center justify-center">
+              <LockIcon/>
+            </div>
           }
         </div>      
       </button>
@@ -255,7 +273,13 @@ export default function HomePage() {
       </div>
       <div className="w-2/3 h-160 rounded-xl bg-gray-700 bg-opacity-25 mt-16 mr-12">
         {
-          currentChat ?
+          !currentChat ?
+          <div className="items-center opacity-25 h-full flex flex-col items-center justify-center">
+            <h2 className="text-2xl font-bold pb-4">Select a chat...</h2>
+            <ChatSmileyIcon/>
+          </div>
+          :
+          !currentChat.encrypted ?
           <div className="flex flex-col m-8">
             <div className="h-12 w-full bg-base-default border border-slate-300 border-opacity-25 rounded-xl items-center flex justify-between">
               <h2 className="mx-4">To: {currentChat.recipient.name} <span className="opacity-50 mx-2 italic">{currentChat.recipient.phone}</span></h2>
@@ -265,7 +289,8 @@ export default function HomePage() {
           </div>
           :
           <div className="items-center opacity-25 h-full flex flex-col items-center justify-center">
-            <h2 className="text-2xl font-bold pb-4">Select a chat...</h2>
+            <h2 className="text-2xl font-bold pb-4">Only one chat can be decrypted per device.</h2>
+            <h2 className="text-2xl font-bold pb-8">For your security, all other conversations remain encrypted.</h2>
             <ChatSmileyIcon/>
           </div>
         }
